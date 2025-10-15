@@ -27,7 +27,7 @@ const createJob = async (req, res) => {
   }
 };
 
-// Get all jobs (anyone can access)
+// Get all jobs or list (anyone can access)
 const getAllJobs = async (req, res) => {
   try {
     const jobs = await Job.find().sort({ createdAt: -1 });
@@ -37,13 +37,25 @@ const getAllJobs = async (req, res) => {
   }
 };
 
-// Get a single job by ID
-const getJobById = async (req, res) => {
+// Get a single job by title
+const getJob = async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id);
-    if (!job) return res.status(404).json({ message: "Job not found" });
+    const { title } = req.body; // ✅ now reading from body, not query
 
-    res.status(200).json(job);
+    if (!title || title.trim() === "") {
+      return res.status(400).json({ message: "Enter title" });
+    }
+
+    // Case-insensitive search
+    const jobs = await Job.find({
+      title: { $regex: title, $options: "i" },
+    }).sort({ createdAt: -1 });
+
+    if (jobs.length === 0) {
+      return res.status(404).json({ message: "No vacancy for the given title" });
+    }
+
+    res.status(200).json({ count: jobs.length, jobs });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -85,4 +97,4 @@ const deleteJob = async (req, res) => {
   }
 };
 
-export { createJob, getAllJobs, getJobById, updateJob, deleteJob };
+export { createJob, getAllJobs, getJob, updateJob, deleteJob };
